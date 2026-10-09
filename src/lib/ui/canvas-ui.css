@@ -1,0 +1,221 @@
+/* Canvas chrome: tool bar and selection colour. Each colour reads a host token with a plain fallback. */
+
+:root {
+  --cv-surface: var(--card, #fff);
+  --cv-surface-hover: var(--accent, #f1f1f4);
+  --cv-line: var(--border, #e4e4e9);
+  --cv-ink: var(--foreground, #1c1c24);
+  --cv-ink-muted: var(--muted-foreground, #6b6b78);
+  --cv-selection: var(--ring, #4a4ad8);
+  --cv-selection-fill: color-mix(in oklch, var(--cv-selection) 12%, transparent);
+  --cv-elevation: var(--elev-overlay, 0 8px 24px rgb(0 0 0 / 0.12), 0 1px 3px rgb(0 0 0 / 0.08));
+  --cv-radius-bar: 14px;
+  --cv-radius-btn: 9px;
+  --cv-btn: 36px;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --cv-btn: 40px;
+  }
+}
+
+/* Full-width flex row so a bar wider than half the pane still centres. */
+.svelte-flow .svelte-flow__panel.cv-dock.center {
+  right: 12px;
+  left: 12px;
+  display: flex;
+  justify-content: center;
+  margin: 0 0 12px;
+  transform: none;
+  pointer-events: none;
+}
+
+.cv-stack {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cv-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--cv-line);
+  border-radius: var(--cv-radius-bar);
+  background: var(--cv-surface);
+  box-shadow: var(--cv-elevation);
+}
+
+.cv-style {
+  padding: 4px 6px;
+}
+
+.cv-sep {
+  align-self: stretch;
+  flex: none;
+  width: 1px;
+  margin: 6px 4px;
+  background: var(--cv-line);
+}
+
+.cv-btn {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--cv-btn);
+  height: var(--cv-btn);
+  border: 0;
+  border-radius: var(--cv-radius-btn);
+  background: transparent;
+  color: var(--cv-ink-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast, 150ms) var(--ease-smooth-out, ease-out),
+    color var(--duration-fast, 150ms) var(--ease-smooth-out, ease-out),
+    scale var(--duration-fast, 150ms) var(--ease-smooth-out, ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cv-btn:hover:not(:disabled) {
+  background: var(--cv-surface-hover);
+  color: var(--cv-ink);
+}
+
+.cv-btn:active:not(:disabled) {
+  scale: 0.94;
+}
+
+.cv-btn[aria-pressed="true"] {
+  background: var(--primary, #1c1c24);
+  color: var(--primary-foreground, #fff);
+}
+
+.cv-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.cv-btn:focus-visible,
+.cv-swatch:focus-visible {
+  outline: 2px solid var(--cv-selection);
+  outline-offset: 1px;
+}
+
+.cv-swatch {
+  position: relative;
+  flex: none;
+  width: var(--cv-btn);
+  height: var(--cv-btn);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The ink disc is 18px inside a 36px hit area. */
+.cv-swatch::before {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 18px;
+  height: 18px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--swatch);
+  outline: 1px solid oklch(0 0 0 / 0.14);
+  outline-offset: -1px;
+  transition: scale var(--duration-fast, 150ms) var(--ease-smooth-out, ease-out);
+}
+
+:root.dark .cv-swatch::before {
+  outline-color: oklch(1 0 0 / 0.16);
+}
+
+.cv-swatch:hover::before {
+  scale: 1.1;
+}
+
+.cv-swatch[aria-pressed="true"]::before {
+  box-shadow:
+    0 0 0 2px var(--cv-surface),
+    0 0 0 4px var(--cv-ink);
+}
+
+.cv-dot {
+  width: var(--dot);
+  height: var(--dot);
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cv-size[aria-pressed="true"] {
+  background: var(--cv-surface-hover);
+  color: var(--cv-ink);
+}
+
+/* A label on hover, for a pointer that can hover. Touch gets the aria-label alone. */
+@media (hover: hover) {
+  .cv-btn[data-tip]::after,
+  .cv-swatch[data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    translate: -50% 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--foreground, #1c1c24);
+    color: var(--background, #fff);
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: pre;
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity var(--duration-fast, 150ms) var(--ease-smooth-out, ease-out),
+      translate var(--duration-fast, 150ms) var(--ease-smooth-out, ease-out);
+  }
+
+  .cv-btn[data-tip]:hover::after,
+  .cv-btn[data-tip]:focus-visible::after,
+  .cv-swatch[data-tip]:hover::after,
+  .cv-swatch[data-tip]:focus-visible::after {
+    opacity: 1;
+    translate: -50% 0;
+    transition-delay: 350ms;
+  }
+
+  .cv-btn:active::after,
+  .cv-btn:disabled::after {
+    opacity: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .cv-hide-narrow {
+    display: none;
+  }
+
+  .cv-bar {
+    padding: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-btn,
+  .cv-swatch::before,
+  .cv-btn[data-tip]::after {
+    transition: none;
+  }
+
+  .cv-btn:active:not(:disabled) {
+    scale: 1;
+  }
+}

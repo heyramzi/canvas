@@ -1,0 +1,43 @@
+/* Pen colour tokens, light by default and lifted on a dark canvas. Values mirror colors.ts. */
+.svelte-flow,
+.pen-overlay {
+  --pen-ink: #1e1e1e;
+  --pen-red: #e03131;
+  --pen-blue: #1971c2;
+  --pen-green: #2f9e44;
+  --pen-amber: #e8a33d;
+  --pen-violet: #6741d9;
+}
+
+.dark .svelte-flow,
+.svelte-flow.dark,
+.dark .pen-overlay {
+  --pen-ink: #e9ecef;
+  --pen-red: #ff8787;
+  --pen-blue: #74c0fc;
+  --pen-green: #69db7c;
+  --pen-amber: #ffd43b;
+  --pen-violet: #b197fc;
+}
+
+/* Ink is an annotation layer, above every card, selected or framed, and in the order it was drawn.
+   The three classes beat a dragging card's own z-index. */
+.svelte-flow .svelte-flow__node.svelte-flow__node-stroke,
+.svelte-flow .svelte-flow__node.svelte-flow__node-text,
+.svelte-flow .svelte-flow__node.svelte-flow__node-shape {
+  z-index: 2000 !important;
+}
+
+/* The node box of a stroke is its bounding rectangle, so only the ink catches the pointer. */
+.svelte-flow__node-stroke {
+  pointer-events: none !important;
+}
+
+/* A shape is an outline, so a click inside an empty one reaches the cards beneath it. */
+.svelte-flow__node-shape {
+  pointer-events: none !important;
+}
+
+.svelte-flow__node-shape .svelte-flow__resize-control {
+  pointer-events: auto;
+}
