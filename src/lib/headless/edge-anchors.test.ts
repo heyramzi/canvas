@@ -4,29 +4,18 @@ import { bestAnchors, sideDetour, type Rect } from "#src/headless/edge-anchors.j
 const box = (x: number, y: number): Rect => ({ x, y, width: 200, height: 80 });
 
 describe("bestAnchors", () => {
-  it("joins stacked boxes down the right, never through the middle", () => {
+  it("joins a box to the one below it, bottom to top, never round the side", () => {
     const { source, target } = bestAnchors(box(0, 0), box(20, 300));
-    expect([source.side, target.side]).toEqual(["right", "right"]);
-    expect(source.x).toBe(200);
-    expect(source.y).toBe(40);
-    expect(target.x).toBe(220);
-    expect(target.y).toBe(340);
+    expect([source.side, target.side]).toEqual(["bottom", "top"]);
+    expect(source).toMatchObject({ x: 100, y: 80 });
+    expect(target).toMatchObject({ x: 120, y: 300 });
   });
 
-  it("joins stacked boxes down the left when the right margin is smaller", () => {
-    const wide: Rect = { x: 0, y: 0, width: 300, height: 80 };
-    const narrow: Rect = { x: 200, y: 300, width: 80, height: 80 };
-    const { source, target } = bestAnchors(wide, narrow);
-    expect([source.side, target.side]).toEqual(["left", "left"]);
-    expect(source.x).toBe(0);
-    expect(target.x).toBe(200);
-  });
-
-  it("stays right on ties and partial overlaps", () => {
-    const tied = bestAnchors(box(0, 300), box(0, 0));
-    expect([tied.source.side, tied.target.side]).toEqual(["right", "right"]);
-    const partial = bestAnchors(box(0, 0), box(100, 300));
-    expect([partial.source.side, partial.target.side]).toEqual(["right", "right"]);
+  it("joins a box to the one above it, top to bottom", () => {
+    const { source, target } = bestAnchors(box(0, 300), box(0, 0));
+    expect([source.side, target.side]).toEqual(["top", "bottom"]);
+    const partial = bestAnchors(box(100, 300), box(0, 0));
+    expect([partial.source.side, partial.target.side]).toEqual(["top", "bottom"]);
   });
 
   it("meets right to left when the target is beside it", () => {
@@ -55,15 +44,27 @@ describe("bestAnchors", () => {
 });
 
 describe("sideDetour", () => {
+  const at = (
+    side: "left" | "right" | "top" | "bottom",
+    a: [number, number],
+    b: [number, number],
+  ) => ({
+    source: { x: a[0], y: a[1], side },
+    target: { x: b[0], y: b[1], side },
+  });
+
   it("runs past the further right edge, plus the margin", () => {
-    const anchors = bestAnchors(box(0, 0), box(20, 300));
+    const anchors = at("right", [200, 40], [220, 340]);
     expect(sideDetour(anchors)).toBe(260);
     expect(sideDetour(anchors, 10)).toBe(230);
   });
 
   it("runs past the further left edge, minus the margin", () => {
-    const wide: Rect = { x: 0, y: 0, width: 300, height: 80 };
-    const narrow: Rect = { x: 200, y: 300, width: 80, height: 80 };
-    expect(sideDetour(bestAnchors(wide, narrow))).toBe(-40);
+    expect(sideDetour(at("left", [0, 40], [200, 340]))).toBe(-40);
+  });
+
+  it("runs past the higher top or lower bottom edge", () => {
+    expect(sideDetour(at("top", [100, 50], [300, 20]))).toBe(-20);
+    expect(sideDetour(at("bottom", [100, 50], [300, 20]))).toBe(90);
   });
 });

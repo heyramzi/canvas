@@ -4,7 +4,10 @@
 // =========================
 import { NodeResizer, type NodeProps } from "@xyflow/svelte";
 import ShapeOutline from "#src/components/shared/svg/ShapeOutline.svelte";
+import PenField from "#src/pen/PenField.svelte";
 import { getDiagramEditorContext } from "#src/editor/editor-context.js";
+import { useHandDrawn } from "#src/editor/hand-context.js";
+import { isLocked } from "#src/editor/lock.js";
 import "#src/pen/pen.css";
 import { penColorVar } from "#src/pen/colors.js";
 import { shapeOutline } from "#src/pen/shapes.js";
@@ -19,6 +22,7 @@ let { id, data, selected, width, height }: NodeProps = $props();
 // STATE
 // =========================
 const editor = getDiagramEditorContext();
+const handDrawn = useHandDrawn();
 let endResize: (() => void) | null = null;
 
 // =========================
@@ -46,41 +50,15 @@ let ink = $derived(penColorVar(shape.color));
 		endResize = null;
 	}}
 />
-<ShapeOutline {shape} {outline} {ink} {width} {height} />
+<ShapeOutline {shape} {outline} {ink} {width} {height} hand={handDrawn()} seed={id} />
 {#if shape.label || selected}
-	<textarea
-		class="label nodrag"
-		rows="1"
+	<PenField
+		variant="label"
 		value={shape.label}
-		readonly={!editor}
-		aria-label="Shape label"
-		style:color={ink}
-		oninput={(event) => editor?.patchNodeData(id, { label: event.currentTarget.value })}
-		onkeydown={(event) => {
-			event.stopPropagation();
-			if (event.key === "Escape") event.currentTarget.blur();
-		}}
-	></textarea>
+		readonly={!editor || isLocked({ data })}
+		ariaLabel="Shape label"
+		color={ink}
+		onCommit={(next, live) => editor?.patchNodeData(id, { label: next }, live ? { coalesce: true } : undefined)}
+		onExit={() => editor?.endTextEdit()}
+	/>
 {/if}
-
-<style>
-	.label {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		field-sizing: content;
-		min-width: 2ch;
-		max-width: 80%;
-		margin: 0;
-		padding: 2px 4px;
-		border: 0;
-		background: transparent;
-		font: inherit;
-		font-weight: 500;
-		text-align: center;
-		resize: none;
-		outline: none;
-		pointer-events: auto;
-	}
-</style>

@@ -37,6 +37,18 @@ describe("applyOps", () => {
     expect(next.edges).toEqual([]);
   });
 
+  it("re-points an edge with patchEdge and rejects a missing endpoint", () => {
+    const withEdge = { ...board(), edges: [{ id: "e", source: "a", target: "b" }] };
+    const next = applyOps(withEdge, [{ kind: "patchEdge", edgeId: "e", patch: { target: "a" } }]);
+    expect(next.edges[0]).toMatchObject({ id: "e", source: "a", target: "a" });
+    expect(() =>
+      applyOps(withEdge, [{ kind: "patchEdge", edgeId: "e", patch: { target: "gone" } }]),
+    ).toThrow(CanvasOpError);
+    expect(() =>
+      applyOps(withEdge, [{ kind: "patchEdge", edgeId: "e", patch: { source: "gone" } }]),
+    ).toThrow(CanvasOpError);
+  });
+
   it("detaches a node with setParent null", () => {
     const next = applyOps(board(), [
       { kind: "setParent", nodeId: "b", parentId: "a" },

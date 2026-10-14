@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   isSketchAccent,
   roughArrow,
+  roughHead,
+  roughLine,
   roughCard,
   roughEllipse,
   seedFrom,
@@ -82,5 +84,16 @@ describe("rough geometry", () => {
   it("gives an arrow a shaft and two head strokes", () => {
     const paths = roughArrow({ x: 0, y: 0 }, { x: 100, y: 40 }, { seed: 9, colors });
     expect(paths.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("hands back the same drawing for the same geometry, and a new one when it moves", () => {
+    const pen = { seed: 21, colors };
+    const first = roughLine({ x: 0, y: 0 }, { x: 80, y: 30 }, pen);
+    expect(roughLine({ x: 0, y: 0 }, { x: 80, y: 30 }, pen)).toBe(first);
+    expect(roughLine({ x: 0, y: 0 }, { x: 80, y: 31 }, pen)).not.toBe(first);
+    expect(roughLine({ x: 0, y: 0 }, { x: 80, y: 30 }, pen, { formal: true })).not.toBe(first);
+    const head = roughHead({ x: 80, y: 30 }, 0.5, pen);
+    expect(roughHead({ x: 80, y: 30 }, 0.5, pen)).toBe(head);
+    expect(roughHead({ x: 80, y: 30 }, 0.6, pen)).not.toBe(head);
   });
 });

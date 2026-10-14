@@ -5,6 +5,11 @@ import {
   tableGridTemplate,
   tableHeight,
   tableNumericColumns,
+  tableMinWidth,
+  tableWeightsAt,
+  tableWidth,
+  TABLE_COLHEAD_H,
+  TABLE_TITLE_H,
 } from "#src/headless/table-layout.js";
 
 const PLANS = {
@@ -81,7 +86,7 @@ describe("tableHeight", () => {
   it("keeps every row to one line when the columns are content-sized", () => {
     const wide = tableHeight(PLANS.headers, PLANS.rows, 1320);
     // Title + heads + two single-line rows. Anything taller means a wrap.
-    expect(wide).toBeLessThan(41 + 29 + 2 * 40);
+    expect(wide).toBeLessThan(TABLE_TITLE_H + TABLE_COLHEAD_H + 2 * 40);
   });
 
   it("grows when the same table is squeezed", () => {
@@ -98,5 +103,56 @@ describe("tableHeight", () => {
 describe("tableColumnCount", () => {
   it("takes the widest row when it runs past the headers", () => {
     expect(tableColumnCount(["A"], [{ cells: ["a", "b", "c"] }])).toBe(3);
+  });
+});
+
+describe("tableWidth", () => {
+  // The "Has to keep working" table of the Solusign board, stored 1320px wide.
+  const KEEP = {
+    headers: ["What", "Until"],
+    rows: [
+      { cells: ["Avoma webhooks, which only reach you through Zapier", "The app takes them in"] },
+      { cells: ["Fillout webhooks", "The app takes them in"] },
+      { cells: ["The Apps Script email sync", "Always"] },
+      { cells: ["Make and Zapier", "It runs in the app instead"] },
+      { cells: ["Any Airtable table", "That table is cut over"] },
+    ],
+  };
+
+  it("fits two short columns to their content, not to the stored width", () => {
+    const width = tableWidth(KEEP.headers, KEEP.rows, 1320);
+    expect(width).toBeGreaterThanOrEqual(500);
+    expect(width).toBeLessThanOrEqual(560);
+  });
+
+  it("never grows past the width it was asked for", () => {
+    expect(tableWidth(KEEP.headers, KEEP.rows, 400)).toBe(400);
+  });
+
+  it("splits by content once the card has room, whatever weights the author wrote", () => {
+    const width = tableWidth(KEEP.headers, KEEP.rows, 1320);
+    const [what, until] = tableWeightsAt(KEEP.headers, KEEP.rows, width, [2, 3]);
+    expect(what).toBeGreaterThan(until);
+  });
+});
+
+describe("tableWidth font", () => {
+  const rows = [
+    {
+      cells: [
+        "Avoma webhooks, which only reach you through Zapier",
+        "The app takes them in until the cutover is done",
+      ],
+    },
+  ];
+
+  it("gives the hand font more room than the plain one", () => {
+    expect(tableWidth(["What", "Until"], rows, undefined, "hand")).toBeGreaterThan(
+      tableWidth(["What", "Until"], rows, undefined, "plain"),
+    );
+  });
+
+  it("will not let a drag squeeze a column under its floor", () => {
+    expect(tableMinWidth(["What", "Until"], rows)).toBeGreaterThanOrEqual(2 * 84);
   });
 });

@@ -66,6 +66,10 @@ export const addEdgeOp = z.object({
     sourceHandle: z.string().optional(),
     targetHandle: z.string().optional(),
     type: z.string().optional(),
+    label: z.string().optional(),
+    animated: z.boolean().optional(),
+    style: z.record(z.string(), z.unknown()).optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
   }),
 });
 
@@ -87,6 +91,9 @@ export const patchEdgeOp = z.object({
       data: z.record(z.string(), z.unknown()).optional(),
       sourceHandle: z.string().optional(),
       targetHandle: z.string().optional(),
+      /** Re-point the edge. The new endpoint must be a node on the board. */
+      source: z.string().min(1).optional(),
+      target: z.string().min(1).optional(),
     })
     .refine((v) => Object.keys(v).length > 0, { message: "patch must include at least one field" }),
 });
@@ -286,6 +293,13 @@ function removeEdge(state: OpState, op: Op<"removeEdge">, i: number): void {
 }
 
 function patchEdge(state: OpState, op: Op<"patchEdge">, i: number): void {
+  const { source, target } = op.patch;
+  if (source !== undefined && !hasNode(state.nodes, source)) {
+    throw new CanvasOpError(`Edge source not found: ${source}`, i);
+  }
+  if (target !== undefined && !hasNode(state.nodes, target)) {
+    throw new CanvasOpError(`Edge target not found: ${target}`, i);
+  }
   let found = false;
   state.edges = state.edges.map((e) => {
     if (e.id !== op.edgeId) return e;

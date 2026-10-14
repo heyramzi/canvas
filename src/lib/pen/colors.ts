@@ -10,6 +10,9 @@ export const PEN_HEX: Record<PenColor, { light: string; dark: string }> = {
   green: { light: "#2f9e44", dark: "#69db7c" },
   amber: { light: "#e8a33d", dark: "#ffd43b" },
   violet: { light: "#6741d9", dark: "#b197fc" },
+  // The brand pair the email lesson figures are drawn in (headless/sketch.ts PALETTE).
+  indigo: { light: "#414fd2", dark: "#8b96ff" },
+  terra: { light: "#f0503d", dark: "#ff8a78" },
 };
 
 export function penColorVar(color: string): string {

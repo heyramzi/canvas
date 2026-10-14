@@ -42,15 +42,16 @@ let hitWidth = $derived(Math.max(stroke.size, 14));
 		stroke-linecap="round"
 		stroke-linejoin="round"
 	/>
+	<!-- Selected, the ink's own outline widens it about 1.7x (pen.css --select-stroke); no box. -->
 	<path
 		class="ink"
 		d={path}
 		fill={penColorVar(stroke.color)}
+		stroke={selected ? penColorVar(stroke.color) : "none"}
+		stroke-width={selected ? stroke.size * 0.7 : 0}
+		stroke-linejoin="round"
 		opacity={stroke.tool === "highlighter" ? HIGHLIGHTER_OPACITY : 1}
 	/>
-	{#if selected}
-		<rect class="frame" x="1" y="1" width={Math.max((width ?? 2) - 2, 0)} height={Math.max((height ?? 2) - 2, 0)} />
-	{/if}
 </svg>
 
 <style>
@@ -64,12 +65,5 @@ let hitWidth = $derived(Math.max(stroke.size, 14));
 	}
 	.ink {
 		pointer-events: visiblePainted;
-	}
-	.frame {
-		fill: none;
-		stroke: var(--pen-blue, #1971c2);
-		stroke-dasharray: 4 3;
-		stroke-width: 1;
-		pointer-events: none;
 	}
 </style>

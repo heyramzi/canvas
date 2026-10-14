@@ -16,6 +16,8 @@ export type CanvasNode<Data extends Record<string, unknown> = Record<string, unk
   style?: Record<string, unknown>;
   width?: number;
   height?: number;
+  /** Stacking layer among siblings, set by bring forward and send back. A missing one is 0. */
+  zIndex?: number;
 };
 
 export type CanvasEdge = {

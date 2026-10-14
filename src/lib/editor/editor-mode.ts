@@ -5,10 +5,25 @@ import type { Node, Edge, InternalNode } from "@xyflow/svelte";
 import type { CanvasViewport } from "#src/types.js";
 import type { CanvasDispatcher } from "#src/editor/dispatch.svelte.js";
 
+/** A fraction of the pane, or a pixel margin per side, so a fit can clear the bars floating over it. */
+export type FitPadding =
+  | number
+  | { top?: `${number}px`; right?: `${number}px`; bottom?: `${number}px`; left?: `${number}px` };
+
 /** The xyflow instance surface the editor bridges via diagram-flow-helper. */
 export type FlowActions = {
   screenToFlowPosition: (pos: { x: number; y: number }) => { x: number; y: number };
-  fitView: (options?: { padding?: number; nodes?: { id: string }[] }) => Promise<boolean>;
+  fitView: (options?: {
+    padding?: FitPadding;
+    nodes?: { id: string }[];
+    maxZoom?: number;
+    /** Overrides the glide, in ms. 0 jumps. */
+    duration?: number;
+  }) => Promise<boolean>;
+  zoomIn: () => Promise<boolean>;
+  zoomOut: () => Promise<boolean>;
+  /** Zoom about the view centre to an exact scale. */
+  zoomTo: (zoom: number) => Promise<boolean>;
   deleteElements: (params: {
     nodes?: { id: string }[];
     edges?: { id: string }[];

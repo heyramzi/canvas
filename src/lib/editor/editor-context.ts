@@ -9,8 +9,17 @@ import { getContext, setContext } from "svelte";
 export type DiagramEditorContext = {
   /** The canvas zoom, so a resize handle can stay one size on screen. */
   canvasZoom?: number;
-  /** Merge a partial data patch into a node. Undoable. */
-  patchNodeData: (nodeId: string, data: Record<string, unknown>) => void;
+  /**
+   * Merge a partial data patch into a node. Undoable. With `coalesce`, patches to one node
+   * less than a second apart are one undo step, for per-keystroke text.
+   */
+  patchNodeData: (
+    nodeId: string,
+    data: Record<string, unknown>,
+    options?: { coalesce?: boolean },
+  ) => void;
+  /** End the coalescing text session so the next patch is a new undo step. Call it on blur. */
+  endTextEdit: () => void;
   /** Set a node's width, keeping its style twin and its board slot in step.
    *  Undoable. */
   setNodeWidth: (nodeId: string, width: number) => void;

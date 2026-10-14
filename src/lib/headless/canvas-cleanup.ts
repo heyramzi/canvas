@@ -40,6 +40,7 @@ export function stripCallbacks<N extends CanvasNode>(nodes: N[]): N[] {
     if (n.style) result.style = n.style;
     if (typeof n.width === "number") result.width = n.width;
     if (typeof n.height === "number") result.height = n.height;
+    if (typeof n.zIndex === "number") result.zIndex = n.zIndex;
     return result;
   });
 }

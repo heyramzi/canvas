@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { resolveEditorKeyAction, isEditingTarget, isPanActivationKey } from "#src/editor/keymap.js";
+import {
+  resolveEditorKeyAction,
+  resolveNudge,
+  isEditingTarget,
+  isPanActivationKey,
+} from "#src/editor/keymap.js";
 
 function press(
   key: string,
@@ -93,5 +98,64 @@ describe("isPanActivationKey", () => {
   it("claims no other key, and no chord", () => {
     expect(isPanActivationKey({ code: "KeyS", key: "s" } as KeyboardEvent)).toBe(false);
     expect(isPanActivationKey(space({ tagName: "DIV" }, { meta: true }))).toBe(false);
+  });
+});
+
+describe("the editor chords and zoom keys", () => {
+  const code = (key: string, codeName: string, shift = false) =>
+    ({
+      key,
+      code: codeName,
+      metaKey: false,
+      ctrlKey: false,
+      altKey: false,
+      shiftKey: shift,
+      target: { tagName: "DIV" },
+    }) as unknown as KeyboardEvent;
+
+  it("maps duplicate, group and ungroup", () => {
+    expect(resolveEditorKeyAction(press("d", { meta: true }), false)).toBe("duplicate");
+    expect(resolveEditorKeyAction(press("g", { meta: true }), false)).toBe("group");
+    expect(resolveEditorKeyAction(press("g", { meta: true, shift: true }), false)).toBe("ungroup");
+    expect(resolveEditorKeyAction(press("d", { meta: true, editing: true }), false)).toBeNull();
+  });
+
+  it("maps chord and plain zoom", () => {
+    expect(resolveEditorKeyAction(press("=", { meta: true }), false)).toBe("zoom-in");
+    expect(resolveEditorKeyAction(press("-", { meta: true }), false)).toBe("zoom-out");
+    expect(resolveEditorKeyAction(code("+", "Equal", true), false)).toBe("zoom-in");
+    expect(resolveEditorKeyAction(code("-", "Minus"), false)).toBe("zoom-out");
+  });
+
+  it("maps Shift with 0, 1 and 2 by key code", () => {
+    expect(resolveEditorKeyAction(code(")", "Digit0", true), false)).toBe("zoom-100");
+    expect(resolveEditorKeyAction(code("!", "Digit1", true), false)).toBe("zoom-fit");
+    expect(resolveEditorKeyAction(code("@", "Digit2", true), false)).toBe("zoom-selection");
+  });
+
+  it("stays out of a field being typed in", () => {
+    expect(resolveEditorKeyAction(press("-", { editing: true }), false)).toBeNull();
+  });
+});
+
+describe("resolveNudge", () => {
+  const arrow = (key: string, shift = false, editing = false) =>
+    ({
+      key,
+      metaKey: false,
+      ctrlKey: false,
+      altKey: false,
+      shiftKey: shift,
+      target: { tagName: editing ? "TEXTAREA" : "DIV" },
+    }) as unknown as KeyboardEvent;
+
+  it("moves 1px, or 10px with Shift", () => {
+    expect(resolveNudge(arrow("ArrowLeft"))).toEqual({ dx: -1, dy: 0 });
+    expect(resolveNudge(arrow("ArrowDown", true))).toEqual({ dx: 0, dy: 10 });
+  });
+
+  it("ignores other keys and fields", () => {
+    expect(resolveNudge(arrow("a"))).toBeNull();
+    expect(resolveNudge(arrow("ArrowUp", false, true))).toBeNull();
   });
 });

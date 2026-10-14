@@ -1,8 +1,4 @@
-/**
- * Which side of each box an edge leaves from and arrives at. The edge picks the
- * pair, not the author. Sides are xyflow `Position` values, handed to
- * getSmoothStepPath.
- */
+/** Which side of each box an edge leaves from and arrives at. Sides are xyflow `Position` values. */
 
 export type Side = "top" | "right" | "bottom" | "left";
 export type Rect = { x: number; y: number; width: number; height: number };
@@ -26,22 +22,48 @@ function anchorOn(rect: Rect, side: Side): Anchor {
   }
 }
 
-/**
- * The pair of sides that face each other. Boxes that overlap horizontally get the
- * same vertical side, so the edge runs past them, never through them.
- */
-export function bestAnchors(source: Rect, target: Rect): { source: Anchor; target: Anchor } {
-  const gapX = Math.max(target.x - (source.x + source.width), source.x - (target.x + target.width));
+/** The side a stored handle id names, or null for an id that isn't one of the four. */
+export function sideFromHandle(id: string | null | undefined): Side | null {
+  return id === "top" || id === "right" || id === "bottom" || id === "left" ? id : null;
+}
 
-  if (gapX <= 0) {
-    const side = detourSide(source, target);
-    return { source: anchorOn(source, side), target: anchorOn(target, side) };
+/** The side of `rect` that looks at `point`: the wider pull, scaled by the box's own shape, wins. */
+function sideFacing(rect: Rect, point: { x: number; y: number }): Side {
+  const c = center(rect);
+  const dx = (point.x - c.x) / rect.width;
+  const dy = (point.y - c.y) / rect.height;
+  if (Math.abs(dx) > Math.abs(dy)) return dx >= 0 ? "right" : "left";
+  return dy >= 0 ? "bottom" : "top";
+}
+
+/** The sides that face each other. A pin is the dot the author dragged from: it wins, and the free end faces it. */
+export function bestAnchors(
+  source: Rect,
+  target: Rect,
+  pins: { source?: Side | null; target?: Side | null } = {},
+): { source: Anchor; target: Anchor } {
+  if (pins.source && pins.target) {
+    return { source: anchorOn(source, pins.source), target: anchorOn(target, pins.target) };
+  }
+  if (pins.source) {
+    const from = anchorOn(source, pins.source);
+    return { source: from, target: anchorOn(target, sideFacing(target, from)) };
+  }
+  if (pins.target) {
+    const to = anchorOn(target, pins.target);
+    return { source: anchorOn(source, sideFacing(source, to)), target: to };
   }
 
+  const gapX = Math.max(target.x - (source.x + source.width), source.x - (target.x + target.width));
   const gapY = Math.max(
     target.y - (source.y + source.height),
     source.y - (target.y + target.height),
   );
+
+  if (gapX <= 0 && gapY <= 0) {
+    const side = detourSide(source, target);
+    return { source: anchorOn(source, side), target: anchorOn(target, side) };
+  }
 
   if (gapX > gapY) {
     const targetIsRight = center(target).x >= center(source).x;
@@ -57,7 +79,8 @@ export function bestAnchors(source: Rect, target: Rect): { source: Anchor; targe
     target: anchorOn(target, targetIsBelow ? "top" : "bottom"),
   };
 }
-// Which side a same-side pair travels on: the wider overhang wins, ties go right.
+
+// Which side an overlapping pair travels on: the wider overhang wins, ties go right.
 function detourSide(source: Rect, target: Rect): "right" | "left" {
   const sL = source.x;
   const sR = source.x + source.width;
@@ -72,14 +95,19 @@ function detourSide(source: Rect, target: Rect): "right" | "left" {
   return "right";
 }
 
-/**
- * The x a same-side path travels along outside both boxes. Both anchors carry
- * the box edge on their side, so the detour is one margin past the further one.
- */
+/** The x (left, right) or y (top, bottom) a same-side path runs along: one margin past the further box edge. */
 export function sideDetour(anchors: { source: Anchor; target: Anchor }, margin = 40): number {
-  const side = anchors.source.side;
-  if (side === "left") return Math.min(anchors.source.x, anchors.target.x) - margin;
-  return Math.max(anchors.source.x, anchors.target.x) + margin;
+  const { source, target } = anchors;
+  switch (source.side) {
+    case "left":
+      return Math.min(source.x, target.x) - margin;
+    case "right":
+      return Math.max(source.x, target.x) + margin;
+    case "top":
+      return Math.min(source.y, target.y) - margin;
+    case "bottom":
+      return Math.max(source.y, target.y) + margin;
+  }
 }
 
 /** The outline an arrow binds to: a box, or the ellipse drawn round it at `rx`, `ry`. */

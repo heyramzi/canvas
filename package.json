@@ -85,7 +85,7 @@
   "scripts": {
     "package": "svelte-kit sync && svelte-package",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test": "vitest run -c vite.config.ts"
+    "test": "vp test run -c vite.config.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.1.1",

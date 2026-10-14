@@ -109,3 +109,29 @@ export function openingViewport(
   const zoom = Math.min((container.width - left - inset) / bounds.width, 1);
   return { x: left - bounds.x * zoom, y: inset - bounds.y * zoom, zoom };
 }
+
+/**
+ * Whether a saved view still shows the board: a card is on screen, and a fitting board isn't
+ * pushed off the left. `inset` is the tool rail's strip.
+ */
+export function viewShowsContent(
+  nodes: GeometryNode[],
+  viewport: CanvasViewport,
+  container: { width: number; height: number },
+  inset = { left: 0 },
+): boolean {
+  const bounds = diagramBounds(nodes);
+  if (!bounds || viewport.zoom <= 0) return true;
+  const left = (inset.left - viewport.x) / viewport.zoom;
+  const right = (container.width - viewport.x) / viewport.zoom;
+  const top = -viewport.y / viewport.zoom;
+  const bottom = (container.height - viewport.y) / viewport.zoom;
+  const onScreen =
+    bounds.x < right &&
+    bounds.x + bounds.width > left &&
+    bounds.y < bottom &&
+    bounds.y + bounds.height > top;
+  if (!onScreen) return false;
+  const fits = bounds.width * viewport.zoom <= container.width - inset.left;
+  return !(fits && bounds.x < left - 4 / viewport.zoom);
+}

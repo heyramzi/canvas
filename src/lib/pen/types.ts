@@ -6,7 +6,16 @@ export const TEXT_NODE = "text";
 export const SHAPE_NODE = "shape";
 
 /** Colours are token names, never hex, so a board drawn in light reads in dark. */
-export const PEN_COLORS = ["ink", "red", "blue", "green", "amber", "violet"] as const;
+export const PEN_COLORS = [
+  "ink",
+  "red",
+  "blue",
+  "green",
+  "amber",
+  "violet",
+  "indigo",
+  "terra",
+] as const;
 export type PenColor = (typeof PEN_COLORS)[number];
 
 export type PenTool =
@@ -44,6 +53,13 @@ export interface TextData extends Record<string, unknown> {
   color: PenColor;
   /** Font size in flow units. */
   fontSize: number;
+  /** Bold, or the face's own weight when unset. */
+  fontWeight?: "regular" | "bold";
+  /** The node's width is a column the words wrap in, as on a board, not the width of the words. */
+  fixedWidth?: boolean;
+  align?: "left" | "center";
+  /** A hand rule under the text, as under a board title. */
+  underline?: boolean;
 }
 
 export interface ShapeData extends Record<string, unknown> {
@@ -51,8 +67,10 @@ export interface ShapeData extends Record<string, unknown> {
   color: PenColor;
   /** Line width in flow units. */
   strokeWidth: number;
-  /** A faint wash of the same colour inside the outline. */
+  /** A faint wash inside the outline. */
   filled: boolean;
+  /** The wash's own colour. Unset, it takes the outline's. */
+  fill?: PenColor;
   label: string;
 }
 

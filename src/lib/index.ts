@@ -32,3 +32,4 @@ export * from "#src/editor/history-core.js";
 export * from "#src/editor/keymap.js";
 export * from "#src/editor/layout-actions.js";
 export * from "#src/editor/rebase.js";
+export * from "#src/editor/text-field-context.js";

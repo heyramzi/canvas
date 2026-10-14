@@ -86,10 +86,123 @@ describe("rebaseDiagram", () => {
     expect(rebased.nodes.map((node) => node.id)).toEqual(["a", "b", "agent-node"]);
   });
 
+  it("keeps a locally re-pointed edge endpoint and handles", () => {
+    const base = doc([n("a"), n("b"), n("c")], [{ id: "e1", source: "a", target: "b" }]);
+    const server = doc(
+      [n("a"), n("b"), n("c"), n("agent")],
+      [{ id: "e1", source: "a", target: "b" }],
+    );
+    const local = doc(
+      [n("a"), n("b"), n("c")],
+      [{ id: "e1", source: "a", target: "c", targetHandle: "left" }],
+    );
+
+    const rebased = expectDefined(rebaseDiagram(server, base, local), "rebased doc");
+    expect(rebased.edges).toEqual([{ id: "e1", source: "a", target: "c", targetHandle: "left" }]);
+  });
+
+  it("returns null when a re-pointed edge's new endpoint was deleted on the server", () => {
+    const base = doc([n("a"), n("b"), n("c")], [{ id: "e1", source: "a", target: "b" }]);
+    const server = doc([n("a"), n("b")], [{ id: "e1", source: "a", target: "b" }]);
+    const local = doc([n("a"), n("b"), n("c")], [{ id: "e1", source: "a", target: "c" }]);
+
+    expect(rebaseDiagram(server, base, local)).toBeNull();
+  });
+
+  it("patches zIndex and type changes, and a removed zIndex", () => {
+    const base = doc([n("a", { zIndex: 1 }), n("b"), n("c", { zIndex: 4 })]);
+    const server = doc([n("a", { zIndex: 1 }), n("b"), n("c", { zIndex: 4 }), n("agent")]);
+    const local = doc([n("a", { zIndex: 9 }), n("b", { type: "sticky" }), n("c")]);
+
+    const rebased = expectDefined(rebaseDiagram(server, base, local), "rebased doc");
+    const byId = new Map(rebased.nodes.map((node) => [node.id, node]));
+    expect(byId.get("a")?.zIndex).toBe(9);
+    expect(byId.get("b")?.type).toBe("sticky");
+    expect(byId.get("c")).not.toHaveProperty("zIndex");
+    expect(byId.has("agent")).toBe(true);
+  });
+
+  it("keeps both sides' edits to different data keys of the same node", () => {
+    const base = doc([n("a", { data: { label: "a", note: "old" } })]);
+    const server = doc([n("a", { data: { label: "a", note: "server note" } })]);
+    const local = doc([n("a", { data: { label: "local label", note: "old" } })]);
+
+    const rebased = expectDefined(rebaseDiagram(server, base, local), "rebased doc");
+    expect(rebased.nodes[0].data).toEqual({ label: "local label", note: "server note" });
+  });
+
+  it("lets local win when both sides edit the same data key", () => {
+    const base = doc([n("a", { data: { label: "a" } })]);
+    const server = doc([n("a", { data: { label: "server" } })]);
+    const local = doc([n("a", { data: { label: "local" } })]);
+
+    const rebased = expectDefined(rebaseDiagram(server, base, local), "rebased doc");
+    expect(rebased.nodes[0].data).toEqual({ label: "local" });
+  });
+
+  it("replaces a changed top-level data key whole, without merging inside it", () => {
+    const base = doc([n("a", { data: { shape: { kind: "box", fill: "red" } } })]);
+    const server = doc([n("a", { data: { shape: { kind: "box", fill: "red", ring: 2 } } })]);
+    const local = doc([n("a", { data: { shape: { kind: "box", fill: "blue" } } })]);
+
+    const rebased = expectDefined(rebaseDiagram(server, base, local), "rebased doc");
+    expect(rebased.nodes[0].data).toEqual({ shape: { kind: "box", fill: "blue" } });
+  });
+
+  it("removes a data key the local side deleted, and keeps the server's other keys", () => {
+    const base = doc([n("a", { data: { label: "a", icon: "x", note: "old" } })]);
+    const server = doc([n("a", { data: { label: "a", icon: "x", note: "server note" } })]);
+    const local = doc([n("a", { data: { label: "a", note: "old" } })]);
+
+    const rebased = expectDefined(rebaseDiagram(server, base, local), "rebased doc");
+    expect(rebased.nodes[0].data).toEqual({ label: "a", note: "server note" });
+    expect(rebased.nodes[0].data).not.toHaveProperty("icon");
+  });
+
+  it("returns null when a field-only change hits a node the server deleted", () => {
+    const base = doc([n("a"), n("b")]);
+    const server = doc([n("a")]);
+    const local = doc([n("a"), n("b", { zIndex: 3 })]);
+
+    expect(rebaseDiagram(server, base, local)).toBeNull();
+  });
+
+  it("keeps parents before children when a local reparent targets a later server node", () => {
+    const base = doc([n("child"), n("box", { type: "space" })]);
+    const server = doc([n("child"), n("box", { type: "space" })]);
+    const local = doc([
+      n("box", { type: "space" }),
+      n("child", { parentId: "box", position: { x: 10, y: 10 } }),
+    ]);
+
+    const rebased = expectDefined(rebaseDiagram(server, base, local), "rebased doc");
+    const ids = rebased.nodes.map((node) => node.id);
+    expect(ids.indexOf("box")).toBeLessThan(ids.indexOf("child"));
+  });
+
   it("returns null when the replay is impossible", () => {
     // Server deleted "b"; local patched it. patchNode on a missing node throws.
     const serverDoc = doc([n("a")]);
     const local = doc([n("a"), n("b", { data: { label: "edited" } })]);
     expect(rebaseDiagram(serverDoc, lastSaved, local)).toBeNull();
+  });
+});
+
+describe("a new edge keeps everything it was drawn with", () => {
+  it("carries label, animated, style and data through a rebase", () => {
+    const base = doc([n("a"), n("b")]);
+    const styled = {
+      id: "e9",
+      source: "a",
+      target: "b",
+      type: "smoothstep",
+      label: "pays",
+      animated: true,
+      style: { stroke: "#f00", strokeWidth: 3 },
+      data: { dash: "dotted", arrow: "both" },
+    };
+    const local = doc([n("a"), n("b")], [styled]);
+    const rebased = rebaseDiagram(doc([n("a"), n("b"), n("c")]), base, local);
+    expect(rebased?.edges).toEqual([styled]);
   });
 });

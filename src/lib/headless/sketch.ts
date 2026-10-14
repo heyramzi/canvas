@@ -4,6 +4,7 @@
 
 import rough from "roughjs";
 import type { Options } from "roughjs/bin/core";
+import { createMemo } from "#src/headless/edge-memo.js";
 
 // =========================
 // PALETTE
@@ -96,6 +97,11 @@ export function seedFrom(id: string): number {
 export type SketchPath = { d: string; stroke: string; fill: string; strokeWidth: number };
 
 const generator = rough.generator();
+
+/** Arrows are redrawn whenever the page repaints them, so a line or head already drawn is handed back. */
+const MEMO_LIMIT = 4000;
+const lines = createMemo<SketchPath[]>(MEMO_LIMIT);
+const heads = createMemo<SketchPath[]>(MEMO_LIMIT);
 
 /** Shared feel. Low roughness reads as a careful hand; high reads as a scribble. */
 function baseOptions(seed: number, colors: SketchColors, overrides?: Options): Options {
@@ -204,6 +210,20 @@ export function roughRect(
   );
 }
 
+/** A closed outline through the given points: the diamond mark, drawn like the box beside it. */
+export function roughPolygon(
+  points: readonly [number, number][],
+  { seed, colors }: SketchPen,
+  { formal = false }: SketchStyle = {},
+): SketchPath[] {
+  return toPaths(
+    generator.polygon(
+      points.map(([x, y]) => [x, y] as [number, number]),
+      baseOptions(seed, colors, { fill: undefined, ...(formal ? FORMAL : {}) }),
+    ),
+  );
+}
+
 /** The hand-drawn rule under a title, `y` down from the top. */
 export function roughUnderline(
   width: number,
@@ -221,34 +241,62 @@ export function roughUnderline(
   );
 }
 
-/** A straight-ish connector between two canvas points, plus its arrow head. */
-export function roughArrow(
+/** The shaft of a hand-ruled connector, with no head. */
+export function roughLine(
   from: { x: number; y: number },
   to: { x: number; y: number },
   { seed, colors }: SketchPen,
   { formal = false }: SketchStyle = {},
 ): SketchPath[] {
   const hand = formal ? FORMAL : {};
-  const shaft = toPaths(
-    generator.line(
-      from.x,
-      from.y,
-      to.x,
-      to.y,
-      baseOptions(seed, colors, { strokeWidth: 1.8, ...hand }),
+  // The same line is asked for on every redraw of its arrow, and rough.js is the slow part.
+  return lines(`${seed}|${colors.stroke}|${formal}|${from.x},${from.y}|${to.x},${to.y}`, () =>
+    toPaths(
+      generator.line(
+        from.x,
+        from.y,
+        to.x,
+        to.y,
+        baseOptions(seed, colors, { strokeWidth: 1.8, ...hand }),
+      ),
     ),
   );
-  const angle = Math.atan2(to.y - from.y, to.x - from.x);
+}
+
+/** Two hand-drawn wings with their tip at `tip`, pointing along `angle` (radians). */
+export function roughHead(
+  tip: { x: number; y: number },
+  angle: number,
+  { seed, colors }: SketchPen,
+  { formal = false }: SketchStyle = {},
+): SketchPath[] {
+  const hand = formal ? FORMAL : {};
   const head = 11;
   const spread = 0.42;
-  const wings = [angle + Math.PI - spread, angle + Math.PI + spread].map((a, i) =>
-    generator.line(
-      to.x,
-      to.y,
-      to.x + Math.cos(a) * head,
-      to.y + Math.sin(a) * head,
-      baseOptions(seed + i + 1, colors, { strokeWidth: 1.8, roughness: 0.8, ...hand }),
+  return heads(`${seed}|${colors.stroke}|${formal}|${tip.x},${tip.y}|${angle}`, () =>
+    [angle + Math.PI - spread, angle + Math.PI + spread].flatMap((a, i) =>
+      toPaths(
+        generator.line(
+          tip.x,
+          tip.y,
+          tip.x + Math.cos(a) * head,
+          tip.y + Math.sin(a) * head,
+          baseOptions(seed + i + 1, colors, { strokeWidth: 1.8, roughness: 0.8, ...hand }),
+        ),
+      ),
     ),
   );
-  return [...shaft, ...wings.flatMap(toPaths)];
+}
+
+/** A straight-ish connector between two canvas points, plus its arrow head. */
+export function roughArrow(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  pen: SketchPen,
+  style: SketchStyle = {},
+): SketchPath[] {
+  return [
+    ...roughLine(from, to, pen, style),
+    ...roughHead(to, Math.atan2(to.y - from.y, to.x - from.x), pen, style),
+  ];
 }

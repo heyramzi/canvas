@@ -10,11 +10,19 @@ export type IconName =
   | "rectangle"
   | "ellipse"
   | "diamond"
+  | "frame"
   | "shapes"
   | "undo"
   | "redo"
   | "cards"
-  | "search";
+  | "search"
+  | "note"
+  | "insert"
+  | "connect"
+  | "distribute-h"
+  | "distribute-v"
+  | "minus"
+  | "more";
 
 export const ICON_PATHS: Record<IconName, readonly string[]> = {
   select: ["M5 3.5 18.5 10l-5.6 1.9L10.7 17.5z"],
@@ -31,6 +39,7 @@ export const ICON_PATHS: Record<IconName, readonly string[]> = {
   rectangle: ["M6 6h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"],
   ellipse: ["M4 12a8 6 0 1 0 16 0a8 6 0 1 0-16 0"],
   diamond: ["M12 4l8 8-8 8-8-8z"],
+  frame: ["M8 4v16M16 4v16M4 8h16M4 16h16"],
   shapes: [
     "M5 12.5h5a1.5 1.5 0 0 1 1.5 1.5v5a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19v-5A1.5 1.5 0 0 1 5 12.5z",
     "M11.5 8a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0-9 0",
@@ -42,4 +51,22 @@ export const ICON_PATHS: Record<IconName, readonly string[]> = {
     "M12 8.5v7M8.5 12h7",
   ],
   search: ["M4.5 11a6.5 6.5 0 1 0 13 0a6.5 6.5 0 1 0-13 0", "M16 16l4 4"],
+  note: [
+    "M6 4h12a1 1 0 0 1 1 1v9l-5 5H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z",
+    "M19 14h-4a1 1 0 0 0-1 1v4",
+  ],
+  insert: ["M12 5v14M5 12h14"],
+  connect: [
+    "M4.5 4.5a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0",
+    "M6 6v4.5a3 3 0 0 0 3 3h9",
+    "M15 10.5l3.5 3-3.5 3",
+  ],
+  "distribute-h": ["M4 4v16M20 4v16", "M9 8h6v8H9z"],
+  "distribute-v": ["M4 4h16M4 20h16", "M8 9h8v6H8z"],
+  minus: ["M5 12h14"],
+  more: [
+    "M4.8 12a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0-2.4 0",
+    "M10.8 12a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0-2.4 0",
+    "M16.8 12a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0-2.4 0",
+  ],
 };

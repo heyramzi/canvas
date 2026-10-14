@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CanvasNode } from "#src/types.js";
-import { diagramBounds, fitViewport } from "#src/headless/fit-viewport.js";
+import { diagramBounds, fitViewport, viewShowsContent } from "#src/headless/fit-viewport.js";
 
 function node(id: string, x: number, y: number, size?: Partial<CanvasNode>): CanvasNode {
   return { id, position: { x, y }, data: {}, ...size } as CanvasNode;
@@ -56,5 +56,30 @@ describe("fitViewport", () => {
   it("returns null when the container has no size yet", () => {
     const nodes = [node("a", 0, 0, { style: { width: 100, height: 100 } })];
     expect(fitViewport(nodes, { width: 0, height: 0 })).toBeNull();
+  });
+});
+
+describe("viewShowsContent", () => {
+  const nodes = [{ position: { x: 0, y: 0 }, width: 400, height: 200 }];
+  const pane = { width: 1000, height: 700 };
+
+  it("accepts a view that frames the board", () => {
+    expect(viewShowsContent(nodes, { x: 200, y: 100, zoom: 1 }, pane, { left: 88 })).toBe(true);
+  });
+
+  it("rejects a view with no card on screen", () => {
+    expect(viewShowsContent(nodes, { x: -5000, y: 0, zoom: 1 }, pane)).toBe(false);
+  });
+
+  it("rejects a board that fits but sits cut off on the left", () => {
+    expect(viewShowsContent(nodes, { x: -60, y: 100, zoom: 1 }, pane, { left: 88 })).toBe(false);
+  });
+
+  it("lets a deliberate zoom into a part of a big board stand", () => {
+    expect(viewShowsContent(nodes, { x: -300, y: 0, zoom: 4 }, pane, { left: 88 })).toBe(true);
+  });
+
+  it("has nothing to miss on an empty board", () => {
+    expect(viewShowsContent([], { x: 9999, y: 0, zoom: 1 }, pane)).toBe(true);
   });
 });

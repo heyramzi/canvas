@@ -10,7 +10,7 @@ import { useStore } from "@xyflow/svelte";
 type Props = {
 	/** Flow units between dots at the finest level, the same as the snap grid. */
 	gap?: number;
-	/** Dot diameter in screen pixels at zoom 1. */
+	/** Dot diameter in flow units at the finest level, so it grows and shrinks with zoom. */
 	size?: number;
 	/** Any CSS colour; the theme's pattern colour when unset. */
 	color?: string;
@@ -24,12 +24,14 @@ type Props = {
 const LEVELS = 5;
 const FADE_START = 6;
 const FADE_END = 12;
+// Screen-pixel bounds: a dot never vanishes zoomed out or turns into a blob zoomed in.
 const MIN_RADIUS = 0.5;
+const MAX_RADIUS = 2;
 
 // =========================
 // PROPS
 // =========================
-let { gap = 20, size = 1.2, color = "var(--xy-background-pattern-color, var(--xy-background-pattern-color-default))" }: Props = $props();
+let { gap = 20, size = 2, color = "var(--xy-background-pattern-color, var(--xy-background-pattern-color-default))" }: Props = $props();
 
 // =========================
 // STATE
@@ -78,10 +80,12 @@ function draw(element: HTMLCanvasElement, view: { x: number; y: number; zoom: nu
 	context.setTransform(1, 0, 0, 1, 0, 0);
 	context.clearRect(0, 0, element.width, element.height);
 	const fill = getComputedStyle(element).color;
-	const radius = Math.max(MIN_RADIUS, (size / 2) * Math.sqrt(view.zoom)) * ratio;
 
 	for (let level = 0; level < LEVELS; level++) {
 		const spacing = gap * 2 ** level * view.zoom;
+		// A coarser level draws bigger dots, so zooming out reads as moving away.
+		const screenRadius = (size / 2) * 2 ** level * view.zoom;
+		const radius = Math.min(MAX_RADIUS, Math.max(MIN_RADIUS, screenRadius)) * ratio;
 		const last = level === LEVELS - 1;
 		const alpha = last ? 1 : smoothstep(FADE_START, FADE_END, spacing);
 		if (alpha <= 0.01) continue;
